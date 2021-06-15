@@ -28,14 +28,41 @@ def get_usb_info(number: int, devices_list: list):
     return device_ids.split(":")
 
 
+def hex_str_to_hex(hex_str: str):
+    hex_int = int(hex_str, 16)
+    return hex(hex_int)
+
+
 needed_Ids = get_usb_info(int(input("Please select the Number of the device: \n")), devices)
 
-# import usb.core
-# import usb.util
-# # find USB devices
-# dev = usb.core.find(find_all=True)
-# # loop through devices, printing vendor and product ids in decimal and hex
-# for cfg in dev:
-#   print('Decimal VendorID=' + str(cfg.idVendor) + ' & ProductID=' + str(cfg.idProduct))
-#   print('Hexadecimal VendorID=' + hex(cfg.idVendor) + ' & ProductID=' + hex(cfg.idProduct))
-#   print(usb.util.find_descriptor(cfg))
+import os
+
+os.environ["PYUSB_DEBUG"] = "debug"
+import usb.core
+import usb.util
+vendorId = hex_str_to_hex(needed_Ids[0])
+productId = hex_str_to_hex(needed_Ids[1])
+
+dev = usb.core.find(idVendor=0x46d, idProduct=0xc534)
+print(dev)
+
+if dev is None:
+    raise ValueError("No Device Found")
+else:
+    ep = dev[0].interfaces()[0].endpoints()[0]
+    i = dev[0].interfaces()[0].bInterfaceNumber
+    dev.reset()
+    reattach = False
+    if dev.is_kernel_driver_active(i):
+        dev.detach_kernel_driver(i)
+        reattach = True
+
+    usb.util.dispose_resources(dev)
+    dev.set_configuration()
+    eaddr = ep.bEndpointAddress
+
+    r = dev.read(eaddr, 1024)
+    print(len(r))
+
+if reattach:
+    dev.reattach_kernel_driver(i)
