@@ -13,13 +13,22 @@ for i in df.split(b'\n'):
       dinfo['device'] = '/dev/bus/usb/%s/%s' % (dinfo.pop('bus'), dinfo.pop('device'))
       devices.append(dinfo)
 
+print(devices)
 print("Please select the number of a usb device:")
 count = 0
 for i in devices:
-  print(str(count)+": "+ str(i["tag"])[2:len(str(i["tag"]))-1])
+  print(str(count)+": "+ str(i["tag"])[2:len(str(i["tag"]))-1] + ": " + re.sub("[b']", "", i["device"]))
   count+=1
 
 
+def get_usb_info(number: int, devices_list: list):
+    device = devices_list[number]
+    device_ids = str(device["id"])
+    device_ids = device_ids[2:11]
+    return device_ids.split(":")
+
+
+needed_Ids = get_usb_info(int(input("Please select the Number of the device: \n")), devices)
 
 # import usb.core
 # import usb.util
