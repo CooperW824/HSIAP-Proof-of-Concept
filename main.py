@@ -38,31 +38,47 @@ needed_Ids = get_usb_info(int(input("Please select the Number of the device: \n"
 import os
 
 os.environ["PYUSB_DEBUG"] = "debug"
-import usb.core
-import usb.util
+
+import usb.backend.libusb1
 vendorId = hex_str_to_hex(needed_Ids[0])
 productId = hex_str_to_hex(needed_Ids[1])
 
 dev = usb.core.find(idVendor=0x46d, idProduct=0xc534)
-print(dev)
+
 
 if dev is None:
     raise ValueError("No Device Found")
 else:
     ep = dev[0].interfaces()[0].endpoints()[0]
     i = dev[0].interfaces()[0].bInterfaceNumber
+
     dev.reset()
     reattach = False
     if dev.is_kernel_driver_active(i):
+        print("Kernel Disabled")
         dev.detach_kernel_driver(i)
         reattach = True
+        usb.util.dispose_resources(dev)
 
-    usb.util.dispose_resources(dev)
-    dev.set_configuration()
-    eaddr = ep.bEndpointAddress
+    dev.reset()
 
-    r = dev.read(eaddr, 1024)
-    print(len(r))
+    try:
+        dev.reset()
+        dev.set_configuration()
+    except usb.core.USBError:
+        print("resource busy")
 
-if reattach:
-    dev.reattach_kernel_driver(i)
+    try:
+        eaddr = ep.bEndpointAddress
+        r = dev.read(eaddr, 1024)
+        print(len(r))
+    except usb.core.USBTimeoutError:
+        print("USB Timeout")
+
+    print(reattach)
+    dev.reset()
+    if reattach:
+        # dev.reset()
+        dev.attach_kernel_driver(i)
+
+print(r)
