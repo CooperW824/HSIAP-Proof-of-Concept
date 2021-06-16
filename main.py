@@ -63,12 +63,6 @@ else:
     dev.reset()
 
     try:
-        dev.reset()
-        dev.set_configuration()
-    except usb.core.USBError:
-        print("resource busy")
-
-    try:
         eaddr = ep.bEndpointAddress
         r = dev.read(eaddr, 1024)
         print(len(r))
@@ -78,7 +72,7 @@ else:
     print(reattach)
     dev.reset()
     if reattach:
-        # dev.reset()
+        usb.util.dispose_resources(dev)
         dev.attach_kernel_driver(i)
 
 print(r)
