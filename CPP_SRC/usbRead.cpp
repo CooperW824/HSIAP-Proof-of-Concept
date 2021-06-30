@@ -2,6 +2,13 @@
 #include <libusb-1.0/libusb.h>
 using namespace std;
 
+
+//prototype functions
+int choose_device(ssize_t cnt, libusb_device **devs);
+void print_name_id(libusb_device *dev, ssize_t num);
+int choose_interface(libusb_device *dev);
+int choose_alternate_setting(libusb_device *dev, int interface);
+int endpoint_selector(libusb_device *dev, int interface, int alternate_set);
 //void printdev(libusb_device *dev); //prototype of the function
 
 int main() {
@@ -10,6 +17,7 @@ int main() {
 	int r; //for return values
 	
 	r = libusb_init(&ctx); //initialize a library session
+	libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, 4 );
 	if(r < 0) {
 		cout<<"Init Error "<<r<<endl; //there was an error
 				return 1;
@@ -24,9 +32,67 @@ int main() {
 	}
 
 	cout<<cnt<<" Devices in list."<<endl; //print total number of usb devices
+	
+	int device_num = choose_device(cnt, devs);
+	libusb_device *device = devs[device_num];
+	libusb_config_descriptor *config;
 
-	//list_devices(ctx);
-	//libusb_set_debug(ctx, 3); //set verbosity level to 3, as suggested in the documentation
+	const libusb_interface *inter;
+	const libusb_interface_descriptor *interdesc;
+	const libusb_endpoint_descriptor *epdesc;
+
+
+	int interface_num =  choose_interface(device);
+	int alt_set_num = choose_alternate_setting(device, interface_num);
+	int endpt_num = endpoint_selector(device, interface_num, alt_set_num);
+
+
+	// inter = &config->interface[interface_num];
+	// interdesc = &inter->altsetting[alt_set_num];
+	// epdesc = &interdesc->endpoint[endpt_num];
+
+	// unsigned char endpt = epdesc->bEndpointAddress;
+
+	libusb_device_handle *handle;
+	libusb_open(device, &handle);
+
+	bool reatach = false;
+
+	if(libusb_kernel_driver_active(handle, interface_num) == 1){
+		libusb_detach_kernel_driver(handle,interface_num);
+		reatach = true;
+	}
+
+	libusb_set_configuration(handle, 1);
+	
+
+	int claim = libusb_claim_interface(handle, interface_num);
+	if(claim == 0){
+		unsigned char data[128];
+		int bulk_transfer = libusb_bulk_transfer(handle, LIBUSB_ENDPOINT_IN, data, sizeof(data), NULL, 0 );
+		if(bulk_transfer == 0){
+			cout << data << endl;
+		}else{
+			cout << "bulk transfer error: " << bulk_transfer << ": " << libusb_error_name(bulk_transfer) << ": " << libusb_strerror(LIBUSB_ERROR_IO)<< endl;
+		}
+	}
+
+	if(reatach){
+		int err = libusb_attach_kernel_driver(handle, interface_num);
+		cout << "Kernel reattach error: " << err << ": " << libusb_error_name(err) << ": " << libusb_strerror(LIBUSB_ERROR_BUSY) << endl;
+	}
+
+	if (libusb_kernel_driver_active(handle, interface_num) == 1){
+		cout << "reattached" << endl;
+	}else{
+		cout << "kernel reattach error" << endl;
+	}
+
+	libusb_close(handle);
+
+	
+		
+		libusb_free_device_list(devs,device_num);
 		libusb_exit(ctx); //close the session
 		return 0;
 }
@@ -60,7 +126,7 @@ void print_name_id(libusb_device *dev, ssize_t num){
 		return;
 	}
 
-	cout << num << ": " << desc.iProduct << desc.idVendor << ":" << desc.idProduct << endl;
+	cout << num << ": " << hex <<desc.idVendor << ":" << hex <<(int)desc.idProduct << endl;
 
 }
 
@@ -74,7 +140,7 @@ int choose_interface(libusb_device *dev){
 
 	for(int i  = 0; i < (int)config->bNumInterfaces; i++){
 		inter = &config->interface[i];
- 		cout<<"Interface "<< i << ": " <<"Number of alternate settings: "<<inter->num_altsetting<<endl;
+ 		cout<<"Interface "<< i << ": " <<"Number of Alternate Settings: "<<inter->num_altsetting<<endl;
 	}
 
 	cout << "Please select an Interface using its number" << endl;
@@ -86,17 +152,18 @@ int choose_interface(libusb_device *dev){
 	return returnVal;
 }
 
+
 int choose_alternate_setting(libusb_device *dev, int interface){
 
 	libusb_config_descriptor *config;
 	libusb_get_config_descriptor(dev, 0, &config);
 
+	cout << config->bConfigurationValue << endl;
+
 	const libusb_interface *inter;
 	const libusb_interface_descriptor *interdesc;
 
 	inter = &config->interface[interface];
-
-	cout << "Alternate Settings: " << endl;
 
 	for(int i = 0; i < inter->num_altsetting; i++){
 		interdesc = &inter->altsetting[i];
@@ -145,10 +212,7 @@ int endpoint_selector(libusb_device *dev, int interface, int alternate_set){
 }
 
 
-
-
-
-//Was started on line 18 in the main function
+//Was started on line 24 in the main function
 //cnt = libusb_get_device_list(ctx, &devs); //get the list of devices
 	//if(cnt < 0) {
 		//cout<<"Get Device Error"<<endl; //there was an error
