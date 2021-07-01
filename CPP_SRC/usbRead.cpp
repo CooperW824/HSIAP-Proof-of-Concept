@@ -6,6 +6,11 @@ using namespace std;
 //prototype functions
 int choose_device(ssize_t cnt, libusb_device **devs);
 void print_name_id(libusb_device *dev, ssize_t num);
+void dataProc(libusb_transfer *transfer);
+typedef void(*libusb_transfer_cb_fn) (struct libusb_transfer *tranfer);
+libusb_transfer_cb_fn callback = &dataProc;
+
+
 
 int main() {
 	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
@@ -73,5 +78,9 @@ void print_name_id(libusb_device *dev, ssize_t num){
 	}
 
 	cout << num << ": " << hex <<desc.idVendor << ":" << hex <<(int)desc.idProduct << endl;
+
+}
+
+void dataProc(libusb_transfer *transfer){
 
 }
