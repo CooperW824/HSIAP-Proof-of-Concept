@@ -43,6 +43,14 @@ int main() {
     libusb_device_handle *handle;
 	libusb_open(device, &handle);
 
+    libusb_transfer *mainTransfer = libusb_alloc_transfer(0);
+
+    unsigned char data[4096];
+
+    libusb_fill_control_setup(data, LIBUSB_REQUEST_TYPE_STANDARD, )
+
+    libusb_fill_control_transfer(mainTransfer, handle, data, callback,  )
+
     libusb_close(handle);
 	libusb_exit(ctx); //close the session
 	return 0;
