@@ -53,11 +53,8 @@ int main() {
 
 
 	inter = &config->interface[interface_num];
-	cout << "1\n";
 	interdesc = &inter->altsetting[alt_set_num];
-	cout << "2\n";
 	epdesc = &interdesc->endpoint[endpt_num];
-	cout << "3\n";
 
 	libusb_free_device_list(devs, device_num);
 
