@@ -65,6 +65,22 @@ int main() {
 
     unsigned char data[4096];
 
+	unsigned char endpoint = epdesc->bEndpointAddress;
+
+	cout << "Please Enter Your Timeout Durration (ms): " << endl;
+	string input;
+	getline(cin, input);
+	unsigned int timeout = stoi(input);
+
+	libusb_fill_bulk_transfer(mainTransfer,handle,endpoint,data,(int)sizeof(data),callback,NULL, timeout);
+
+	int transferReturn = libusb_submit_transfer(mainTransfer);
+
+	if(transferReturn == 0){
+		cout << "Transfer Successful with code 0" << endl;
+	}else{
+		cout << "Transfer Error, Code: " << transferReturn << " " << libusb_error_name(transferReturn) << ": " << libusb_strerror(transferReturn) << endl;
+	}
 
     libusb_close(handle);
 	libusb_exit(ctx); //close the session
@@ -186,5 +202,10 @@ int endpoint_selector(libusb_device *dev, int interface, int alternate_set){
 }
 
 void dataProc(libusb_transfer *transfer){
-
+	unsigned char *buffer = transfer->buffer;
+	if (buffer[0] != NULL){
+		cout << buffer << endl;
+	}else{
+		cout << "Error in buffer collection/output" << endl;
+	}
 }
