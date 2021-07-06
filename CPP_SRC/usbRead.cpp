@@ -9,7 +9,9 @@ void print_name_id(libusb_device *dev, ssize_t num);
 void dataProc(libusb_transfer *transfer);
 typedef void(*libusb_transfer_cb_fn) (struct libusb_transfer *tranfer);
 libusb_transfer_cb_fn callback = &dataProc;
-
+int choose_interface(libusb_device *dev);
+int choose_alternate_setting(libusb_device *dev, int interface);
+int endpoint_selector(libusb_device *dev, int interface, int alternate_set);
 
 
 int main() {
@@ -84,6 +86,87 @@ void print_name_id(libusb_device *dev, ssize_t num){
 
 	cout << num << ": " << hex <<desc.idVendor << ":" << hex <<(int)desc.idProduct << endl;
 
+}
+
+int choose_interface(libusb_device *dev){
+	libusb_config_descriptor *config;
+	libusb_get_config_descriptor(dev, 0, &config);
+
+	cout <<"Interfaces: " << endl;
+
+	const libusb_interface *inter;
+
+	for(int i  = 0; i < (int)config->bNumInterfaces; i++){
+		inter = &config->interface[i];
+ 		cout<<"Interface "<< i << ": " <<"Number of Alternate Settings: "<<inter->num_altsetting<<endl;
+	}
+
+	cout << "Please select an Interface using its number" << endl;
+
+	string input;
+	getline(cin, input);
+	int returnVal = stoi(input);
+
+	return returnVal;
+}
+
+
+int choose_alternate_setting(libusb_device *dev, int interface){
+
+	libusb_config_descriptor *config;
+	libusb_get_config_descriptor(dev, 0, &config);
+
+	cout << config->bConfigurationValue << endl;
+
+	const libusb_interface *inter;
+	const libusb_interface_descriptor *interdesc;
+
+	inter = &config->interface[interface];
+
+	for(int i = 0; i < inter->num_altsetting; i++){
+		interdesc = &inter->altsetting[i];
+		cout << "Alternate Setting " << i << ": ";
+		cout<<"Interface Number: "<<(int)interdesc->bInterfaceNumber<<" | ";
+		cout<<"Number of endpoints: "<<(int)interdesc->bNumEndpoints<< endl;
+	}
+
+	cout << "Please Choose an Alternate Setting Number: " << endl;
+
+	string input;
+	getline(cin, input);
+	int returnVal = stoi(input);
+
+	return returnVal;
+}
+
+int endpoint_selector(libusb_device *dev, int interface, int alternate_set){
+	libusb_config_descriptor *config;
+ 	libusb_get_config_descriptor(dev, 0, &config);
+
+	const libusb_interface *inter;
+	const libusb_interface_descriptor *interdesc;
+	const libusb_endpoint_descriptor *epdesc;
+
+	inter = &config->interface[interface];
+	interdesc = &inter->altsetting[alternate_set];
+
+	cout << "Endpoints: " << endl;
+
+	for(int k=0; k<(int)interdesc->bNumEndpoints; k++) {
+		epdesc = &interdesc->endpoint[k];
+		cout << "Endpoint " << k << ": ";
+		cout<<"Descriptor Type: "<<(int)epdesc->bDescriptorType<<" | ";
+		cout<<"EP Address: "<<(int)epdesc->bEndpointAddress<<endl;
+	}
+
+	cout << "Please Select an Endpoint Using its Number:" << endl;
+	
+	string input;
+	getline(cin, input);
+
+	int returnVal = stoi(input);
+
+	return returnVal;
 }
 
 void dataProc(libusb_transfer *transfer){
