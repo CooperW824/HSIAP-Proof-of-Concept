@@ -40,7 +40,26 @@ int main() {
 	libusb_device *device = devs[device_num];
 	libusb_config_descriptor *config;
 
-	libusb_free_device_list(devs,device_num);
+	libusb_get_config_descriptor(device, 0, &config);
+	
+	const libusb_interface *inter;
+	const libusb_interface_descriptor *interdesc;
+	const libusb_endpoint_descriptor *epdesc;
+
+
+	int interface_num =  choose_interface(device);
+	int alt_set_num = choose_alternate_setting(device, interface_num);
+	int endpt_num = endpoint_selector(device, interface_num, alt_set_num);
+
+
+	inter = &config->interface[interface_num];
+	cout << "1\n";
+	interdesc = &inter->altsetting[alt_set_num];
+	cout << "2\n";
+	epdesc = &interdesc->endpoint[endpt_num];
+	cout << "3\n";
+
+	libusb_free_device_list(devs, device_num);
 
     libusb_device_handle *handle;
 	libusb_open(device, &handle);
