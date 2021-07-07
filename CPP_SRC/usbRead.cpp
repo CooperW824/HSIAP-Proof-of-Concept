@@ -61,18 +61,20 @@ int main() {
     libusb_device_handle *handle;
 	libusb_open(device, &handle);
 
+	libusb_set_interface_alt_setting(handle, interface_num, alt_set_num);
+
     libusb_transfer *mainTransfer = libusb_alloc_transfer(0);
 
-    unsigned char data[4096];
+    unsigned char data[8];
 
 	unsigned char endpoint = epdesc->bEndpointAddress;
 
-	cout << "Please Enter Your Timeout Durration (ms): " << endl;
+	cout << "Please Enter Your Timeout Durration in ms (0 for no timeout): " << endl;
 	string input;
 	getline(cin, input);
 	unsigned int timeout = stoi(input);
 
-	libusb_fill_bulk_transfer(mainTransfer,handle,endpoint,data,(int)sizeof(data),callback,NULL, timeout);
+	libusb_fill_interrupt_transfer(mainTransfer,handle,endpoint,data,(int)sizeof(data),callback,NULL, timeout);
 
 	int transferReturn = libusb_submit_transfer(mainTransfer);
 
@@ -202,8 +204,10 @@ int endpoint_selector(libusb_device *dev, int interface, int alternate_set){
 }
 
 void dataProc(libusb_transfer *transfer){
-	unsigned char *buffer = transfer->buffer;
+	cout << "CALLBACK" <<endl;
+	unsigned char *buffer = libusb_control_transfer_get_data(transfer);
 	if (buffer[0] != NULL){
+
 		cout << buffer << endl;
 	}else{
 		cout << "Error in buffer collection/output" << endl;
