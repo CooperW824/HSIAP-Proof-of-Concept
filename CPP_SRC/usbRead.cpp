@@ -83,7 +83,7 @@ int main() {
 	}else{
 		cout << "Transfer Error, Code: " << transferReturn << " " << libusb_error_name(transferReturn) << ": " << libusb_strerror(transferReturn) << endl;
 	}
-
+	libusb_free_transfer(mainTransfer);
     libusb_close(handle);
 	libusb_exit(ctx); //close the session
 	return 0;
