@@ -6,13 +6,12 @@ using namespace std;
 //prototype functions
 int choose_device(ssize_t cnt, libusb_device **devs);
 void print_name_id(libusb_device *dev, ssize_t num);
-void dataProc(libusb_transfer *transfer);
-typedef void(*libusb_transfer_cb_fn) (struct libusb_transfer *tranfer);
-libusb_transfer_cb_fn callback = &dataProc;
+void callback(unsigned char data[]);
 int choose_interface(libusb_device *dev);
 int choose_alternate_setting(libusb_device *dev, int interface);
 int endpoint_selector(libusb_device *dev, int interface, int alternate_set);
 
+int interface_num;
 
 int main() {
 	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
@@ -47,7 +46,7 @@ int main() {
 	const libusb_endpoint_descriptor *epdesc;
 
 
-	int interface_num =  choose_interface(device);
+	interface_num =  choose_interface(device);
 	int alt_set_num = choose_alternate_setting(device, interface_num);
 	int endpt_num = endpoint_selector(device, interface_num, alt_set_num);
 
@@ -63,9 +62,7 @@ int main() {
 
 	libusb_set_interface_alt_setting(handle, interface_num, alt_set_num);
 
-    libusb_transfer *mainTransfer = libusb_alloc_transfer(0);
-
-    unsigned char data[8];
+    unsigned char data[20];
 
 	unsigned char endpoint = epdesc->bEndpointAddress;
 
@@ -74,16 +71,26 @@ int main() {
 	getline(cin, input);
 	unsigned int timeout = stoi(input);
 
-	libusb_fill_interrupt_transfer(mainTransfer,handle,endpoint,data,(int)sizeof(data),callback,NULL, timeout);
+	int actLen;
 
-	int transferReturn = libusb_submit_transfer(mainTransfer);
+	bool reattach;
+
+	if(libusb_kernel_driver_active(handle, interface_num) == 1){
+		libusb_detach_kernel_driver(handle, interface_num);
+		reattach = true;
+	}
+
+	int transferReturn = libusb_interrupt_transfer(handle,endpoint,data,(int)sizeof(data),&actLen, timeout);
 
 	if(transferReturn == 0){
 		cout << "Transfer Successful with code 0" << endl;
+		callback(data);
+		if(reattach){
+				libusb_reset_device(handle);
+		}
 	}else{
 		cout << "Transfer Error, Code: " << transferReturn << " " << libusb_error_name(transferReturn) << ": " << libusb_strerror(transferReturn) << endl;
 	}
-	libusb_free_transfer(mainTransfer);
     libusb_close(handle);
 	libusb_exit(ctx); //close the session
 	return 0;
@@ -203,13 +210,12 @@ int endpoint_selector(libusb_device *dev, int interface, int alternate_set){
 	return returnVal;
 }
 
-void dataProc(libusb_transfer *transfer){
-	cout << "CALLBACK" <<endl;
-	unsigned char *buffer = libusb_control_transfer_get_data(transfer);
-	if (buffer[0] != NULL){
-
-		cout << buffer << endl;
+void callback(unsigned char datain[]){
+	if(datain[0] != NULL){
+		for(ssize_t i = 0; i < sizeof(datain); i++){
+			cout<< hex <<(int)datain[(int)i]<< endl;
+		}
 	}else{
-		cout << "Error in buffer collection/output" << endl;
+		cout << "Error in Buffer collection or Output" << endl;
 	}
 }
