@@ -6,6 +6,12 @@ The end goal for me is to build multiple pluggins for importing serial and USB d
 
 This code is proof of concept code, it is not final production code for the hobbits pluggins. 
 
+## Usage:
+
+The Serial Reading program can read the data comming off of a specific, active serial port for a user selected timeout.
+
+The USB reading code can read the data comming off a user selected endpoint for a user selected timeout durration. 
+
 ### **Disclaimer: This code is only for proof of concept for reading from Serial and USB ports. The code is not very well documented, and probably wont be documented in its current state. The documnentation will be written with the final repository for the plugins.**
 
 ## Dependencies
